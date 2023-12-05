@@ -165,8 +165,8 @@ host = '10.20.20.201'
 port = 1521
 #sid = 'OLB19DB'
 sid = 'PDB_ONE.INCAR.CO.KR'
-user_name = 'NEWINCAR'
-passwd = 'NEWSTART'
+user_name = ''
+passwd = ''
 
 conn = cx_Oracle.connect(f'{user_name}/{passwd}@{host}:{port}/{sid}')
 
