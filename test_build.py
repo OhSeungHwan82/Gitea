@@ -86,7 +86,7 @@ def build(get_commit_hash):
             for dir_line in dir_lines:
                 dir_line = dir_line.replace("/", "\\")
                 #print(dir_line.lower())
-                if dir_line.lower() in output_content.lower():  
+                if dir_line.replace("/", "\\").lower() in output_content.lower():  
                 # output_content 에 해당 파일이 있으면 그 커밋이 오류
                     err_chk = True
                     err_chk2 = True
