@@ -67,6 +67,7 @@ def build(get_commit_hash):
 
     # 에러 여부 체크
     if "warning" in output_content.lower() or "error" in output_content.lower():
+        print("errorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerrorerror")
         #어느 커밋에서 오류인지 알 수 없으니까 커밋별 변경파일을 가져옴
         output, error = run_git_command_prod(f"git log --pretty=format:%h,%s,%an {get_commit_hash}..")
         if output:
@@ -95,11 +96,12 @@ def build(get_commit_hash):
             #변경된 파일이 여러개가 나올 수 있으니까 반복문
             dir_lines = add_file_list.split("\n")
             for dir_line in dir_lines:
-                #print("xxxxxxxxxxxxxxxxxxxxxxx")
-                if dir_line.lower() in output_content.lower():  
+                print("xxxxxxxxxxxxxxxxxxxxxxx",dir_line.lower())
+                print("xxxxxxxxxxxxxxxxxxxxxxx",output_content.lower())
+                if dir_line.replace("/", "\\").lower() in output_content.lower():  
                 # output_content 에 해당 파일이 있으면 그 커밋이 오류
-                    #print("vvvvvvvvvvvvvvv")
-                    output_content_cut = output_content[0:1000]
+                    print("vvvvvvvvvvvvvvv")
+                    output_content_cut = output_content[0:800]
                     content = f"""□  운영 배포브랜치 빌드  □\n접수번호 : {commit_msg}\n작성자 : {commit_user}\n처리내용 : 운영 IIMS 빌드에 실패했습니다. \n {output_content_cut}"""
                     webhook_send(content)
                     print(content)
@@ -159,16 +161,16 @@ def build(get_commit_hash):
             print(content)
     
 current_time("운영 IIMS 빌드 작업시작 : ")  
-cx_Oracle.init_oracle_client(lib_dir=r"D:\instantclient_21_9")          
-#host = '16.16.16.120'
-host = '10.20.20.201'
-port = 1521
-#sid = 'OLB19DB'
-sid = 'PDB_ONE.INCAR.CO.KR'
-user_name = ''
-passwd = ''
+# cx_Oracle.init_oracle_client(lib_dir=r"D:\instantclient_21_9")          
+# #host = '16.16.16.120'
+# host = '10.20.20.201'
+# port = 1521
+# #sid = 'OLB19DB'
+# sid = 'PDB_ONE.INCAR.CO.KR'
+# user_name = ''
+# passwd = ''
 
-conn = cx_Oracle.connect(f'{user_name}/{passwd}@{host}:{port}/{sid}')
+# conn = cx_Oracle.connect(f'{user_name}/{passwd}@{host}:{port}/{sid}')
 
 # 실행 중인지 여부를 확인하기 위한 파일 경로
 lock_file = "release_build_lock.txt"
@@ -209,7 +211,7 @@ def run_task():
         if error:
             print(error)
         #최신 커밋 해시값 이후로 추가 커밋이 있는지 체크
-        #get_commit_hash ="72de040"
+        #get_commit_hash ="6a086a5"
         insert_commit_info = ""
         output, error = run_git_command_prod(f"git log --pretty=format:%h,%s,%an {get_commit_hash}..")
         if output:
@@ -267,5 +269,5 @@ def run_task():
         os.remove(lock_file)
 # 스케줄에 따라 작업을 실행합니다.
 run_task()
-conn.close()    
+# conn.close()    
 current_time("운영 IIMS 빌드 작업종료 : ")
