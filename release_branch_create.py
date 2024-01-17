@@ -24,7 +24,7 @@ permissions2 = stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.
 # 권한 변경
 os.chmod(dir_path2, permissions2)
 
-cx_Oracle.init_oracle_client(lib_dir=r"D:\instantclient_21_9")
+# cx_Oracle.init_oracle_client(lib_dir=r"D:\instantclient_21_9")
 def run_git_command_test(command):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=r"D:\Test-IIMS-PLUS")
     output, error = process.communicate()
@@ -42,15 +42,15 @@ def webhook_send(content):
     response = requests.post(URL, data=dataInfo)
 
 current_time("접수번호 브랜치 생성 시작 : ")      
-#host = '16.16.16.16'
-host = '10.20.20.201'
-port = 1521
-#sid = 'OLB19DB'
-sid = 'PDB_ONE.INCAR.CO.KR'
-user_name = ''
-passwd = ''
+# #host = '16.16.16.120'
+# host = '10.20.20.201'
+# port = 1521
+# #sid = 'OLB19DB'
+# sid = 'PDB_ONE.INCAR.CO.KR'
+# user_name = ''
+# passwd = ''
 
-conn = cx_Oracle.connect(f'{user_name}/{passwd}@{host}:{port}/{sid}')
+# conn = cx_Oracle.connect(f'{user_name}/{passwd}@{host}:{port}/{sid}')
 
 # 실행 중인지 여부를 확인하기 위한 파일 경로
 lock_file = "release_branch_create_lock.txt"
@@ -87,26 +87,37 @@ def run_task():
             print(output.decode("utf-8"))
         if error:
             print(error)
-        qry = """
-select  a.info_request_pk
-        , b.jubsu_no
-from    git_inforequest_link a    -- 작업스케줄러 - 테스트원격저장소와 정보처리요청게시판 연동      
-        , info_request b
-where   a.gubun ='1'
-and     b.status_cd ='10'--정보처리요청게시판 이행승인
-and     a.upmu_gubun ='1'
-and     a.info_request_pk = b.pk
-group by a.info_request_pk
-        , b.jubsu_no
-                """
-        print(qry)
-        cursor = conn.cursor()
-        cursor.execute(qry)
-        rows = cursor.fetchall()
-        for row in rows:
+#         qry = """
+# select  a.info_request_pk
+#         , b.jubsu_no
+# from    git_inforequest_link a    -- 작업스케줄러 - 테스트원격저장소와 정보처리요청게시판 연동      
+#         , info_request b
+# where   a.gubun ='1'
+# and     b.status_cd ='10'--정보처리요청게시판 이행승인
+# and     a.upmu_gubun ='1'
+# and     a.info_request_pk = b.pk
+# group by a.info_request_pk
+#         , b.jubsu_no
+#                 """
+#         print(qry)
+#         cursor = conn.cursor()
+#         cursor.execute(qry)
+#         rows = cursor.fetchall()
+        api_url = "http://10.16.16.160/api/giteaApi/createBranch/1/1"
+
+        # POST 요청 보내기
+        response = requests.get(api_url)  
+        print(response.status_code)
+        print(response.text)
+        #print(response.json())  
+        json_data = response.json()
+        data_list = json_data.get('list', [])
+        for row in data_list:#for row in rows:
             #print(row)
-            info_request_pk = row[0]
-            jubsu_no = row[1]
+            # info_request_pk = row[0]
+            # jubsu_no = row[1]
+            info_request_pk = row.get('INFO_REQUEST_PK')
+            jubsu_no = row.get('JUBSU_NO')
             output, error = run_git_command_prod("git checkout release")
             if output:
                 print("git checkout release:",output.decode("utf-8"))
@@ -157,16 +168,26 @@ group by a.info_request_pk
             if error:
                 print(error)
             # info_request_pk 로 hash 를 찾기
-            qry = f"""select hash_code from git_inforequest_link where info_request_pk = :info_request_pk and gubun='1' and upmu_gubun ='1'"""
-            bind_arr={"info_request_pk":info_request_pk}
-            print(qry)
-            print(bind_arr)
-            cursor = conn.cursor()
-            cursor.execute(qry,bind_arr)
-            lines = cursor.fetchall()
-            for line in lines:
+            # qry = f"""select hash_code from git_inforequest_link where info_request_pk = :info_request_pk and gubun='1' and upmu_gubun ='1'"""
+            # bind_arr={"info_request_pk":info_request_pk}
+            # print(qry)
+            # print(bind_arr)
+            # cursor = conn.cursor()
+            # cursor.execute(qry,bind_arr)
+            # lines = cursor.fetchall()
+            api_url = f"""http://10.16.16.160/api/giteaApi/createBranch/2/{info_request_pk}"""
+
+            # POST 요청 보내기
+            response = requests.get(api_url)  
+            print(response.status_code)
+            print(response.text)
+            #print(response.json())  
+            json_data = response.json()
+            data_list = json_data.get('list', [])
+            for line in data_list:
                 #print(line[0])
-                teat_hash_code = line[0]
+                # teat_hash_code = line[0]
+                teat_hash_code = line.get('HASH_CODE')
                 # 테스트해시값으로 변경된 파일가져오기
                 output1, error1 = run_git_command_test(f"git fetch origin")
                 if output1:
@@ -260,5 +281,5 @@ group by a.info_request_pk
         os.remove(lock_file)
 # 스케줄에 따라 작업을 실행합니다.
 run_task()
-conn.close()    
+# conn.close()    
 current_time("접수번호 브랜치 생성 종료 : ")   
