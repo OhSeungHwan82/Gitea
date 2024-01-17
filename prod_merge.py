@@ -23,14 +23,14 @@ def run_git_command_deploy(command):
     return output, error
 
 current_time("운영브랜치 병합 시작 : ")  
-cx_Oracle.init_oracle_client(lib_dir=r"D:\instantclient_21_9")
-#host = '16.16.16.120'
-host = '10.20.20.201'
-port = 1521
-#sid = 'OLB19DB'
-sid = 'PDB_ONE.INCAR.CO.KR'
-user_name = ''
-passwd = ''
+# cx_Oracle.init_oracle_client(lib_dir=r"D:\instantclient_21_9")
+# #host = '16.16.16.120'
+# host = '10.20.20.201'
+# port = 1521
+# #sid = 'OLB19DB'
+# sid = 'PDB_ONE.INCAR.CO.KR'
+# user_name = ''
+# passwd = ''
 
 get_commit_hash = ""
 get_commit_msg = ""
@@ -42,7 +42,7 @@ if output:
 if error:
     print(error)
 #운영브랜치 pull
-output, error = run_git_command_prod("git pull")
+output, error = run_git_command_prod("git pull origin main")
 if output:
     print(output.decode("utf-8"))
 if error:
@@ -60,7 +60,7 @@ if output:
     print(output.decode("utf-8"))
 if error:
     print(error)
-output, error = run_git_command_prod("git pull")
+output, error = run_git_command_prod("git pull origin release")
 if output:
     print(output.decode("utf-8"))
 if error:
@@ -86,7 +86,7 @@ if output:
 if error:
     print(error)
 #병합하고 get_commit_hash 이후로 발생한 커밋들의 해시값과 커밋메시지 획득
-#get_commit_hash = "265ba5c"
+#get_commit_hash = "a4c3a40"
 insert_commit_msg =""
 insert_commit_hash =""
 insert_commit_hash_msg = ""
@@ -100,7 +100,7 @@ if error:
 if insert_commit_hash_msg!="":    
     #해쉬값은 여러개가 나올 수 있으니까 반복문
     lines = insert_commit_hash_msg.split("\n")
-    conn = cx_Oracle.connect(f'{user_name}/{passwd}@{host}:{port}/{sid}')
+    # conn = cx_Oracle.connect(f'{user_name}/{passwd}@{host}:{port}/{sid}')
     for line in lines:
         insert_data = line.split(",")
         #print("insert_commit_hash : ",insert_data[0])
@@ -110,64 +110,95 @@ if insert_commit_hash_msg!="":
 
         
         #insert_commit_hash 커밋 해시값 , insert_commit_msg 커밋 메시지 = 접수번호
-        qry = f"""
-                    select pk from info_request where jubsu_no =:jubsu_no
-                """
-        bind_arr={"jubsu_no":insert_commit_msg}
-        print(qry)
-        print(bind_arr)
-        cursor = conn.cursor()
-        cursor.execute(qry, bind_arr)
-        info_request_pk = ""
-        results = cursor.fetchall()
-        for row in results:
-            info_request_pk = row[0]
+        # qry = f"""
+        #             select pk from info_request where jubsu_no =:jubsu_no
+        #         """
+        # bind_arr={"jubsu_no":insert_commit_msg}
+        # print(qry)
+        # print(bind_arr)
+        # cursor = conn.cursor()
+        # cursor.execute(qry, bind_arr)
+        # info_request_pk = ""
+        # results = cursor.fetchall()
+        # for row in results:
+        #     info_request_pk = row[0]
+        # print(info_request_pk)            
             #print("info_request_pk",info_request_pk)
-        qry = f"""
-                    insert into git_inforequest_link 
-                    (info_request_pk, hash_code, gubun, create_date, upmu_gubun)
-                    values
-                    (:info_request_pk, :hash_code, '2', sysdate, '1')
-                """
+        # qry = f"""
+        #             insert into git_inforequest_link 
+        #             (info_request_pk, hash_code, gubun, create_date, upmu_gubun)
+        #             values
+        #             (:info_request_pk, :hash_code, '2', sysdate, '1')
+        #         """
         
-        bind_arr={"info_request_pk":info_request_pk, "hash_code":insert_commit_hash}
-        print(qry)
-        print(bind_arr)
-        cursor = conn.cursor()
-        cursor.execute(qry, bind_arr)
-        conn.commit()
+        # bind_arr={"info_request_pk":info_request_pk, "hash_code":insert_commit_hash}
+        # print(qry)
+        # print(bind_arr)
+        # cursor = conn.cursor()
+        # cursor.execute(qry, bind_arr)
+        # conn.commit()
         
-        qry = """
-                select  ip
-                from    sawon
-                where   sawon_cd =1611006
-            """
-        cursor = conn.cursor()
-        cursor.execute(qry)
-        pw = ""
-        results = cursor.fetchall()
-        for row in results:
-            pw = row[0]
-        
-        dataInfo = {'registCd':'1611006','registPw':pw,'pk':info_request_pk,'gubun':'8'}
-        URL = 'http://air.incar.co.kr/Etc/InfoRequest/SaveConfirm'
-        response = requests.post(URL, data=dataInfo)
+        api_url = "http://10.16.16.160/api/giteaApi/link"
+
+        # IrItem 클래스에 해당하는 데이터
+        data = {
+            "jubsu_no": insert_commit_msg,
+            "hash_code": insert_commit_hash,
+            "gubun": "2",
+            "upmu_gubun": "1"
+        }
+
+        # POST 요청 보내기
+        response = requests.post(api_url, json=data)
+        print(response.status_code)
         print(response.text)
-        if response.status_code == 200:  # 정상 응답 확인
-            xml_data = response.text
-            root = ET.fromstring(xml_data)  # XML 파싱
-            print("root : ",root)
-            for status in root.findall('status'):
-                value = status.find('ercode').text
-                print("value",value)
-            # 이제 XML 요소에 접근하여 필요한 작업 수행 가능
-            # 예를 들어, 특정 요소의 값을 가져오는 방법은 아래와 같습니다:
-            #value = root.find('sawon_cd').text
-            #print(value)
-        else:
-            print("Error:", response.status_code)
-    conn.close() 
-    output, error = run_git_command_deploy(f"git pull")
+        json_data = response.json()
+        info_request_pk = json_data.get('info_request_pk')
+        print("info_request_pk",info_request_pk)
+        
+        api_url = "http://10.16.16.160/api/giteaApi/prodMerge"
+
+        # IrItem 클래스에 해당하는 데이터
+        data = {
+            "info_request_pk": info_request_pk,
+        }
+
+        # POST 요청 보내기
+        response = requests.post(api_url, json=data)
+        print(response.status_code)
+        print(response.text)
+        
+        # qry = """
+        #         select  ip
+        #         from    sawon
+        #         where   sawon_cd =1611006
+        #     """
+        # cursor = conn.cursor()
+        # cursor.execute(qry)
+        # pw = ""
+        # results = cursor.fetchall()
+        # for row in results:
+        #     pw = row[0]
+        
+        # dataInfo = {'registCd':'1611006','registPw':pw,'pk':info_request_pk,'gubun':'8'}
+        # URL = 'http://air.incar.co.kr/Etc/InfoRequest/SaveConfirm'
+        # response = requests.post(URL, data=dataInfo)
+        # print(response.text)
+        # if response.status_code == 200:  # 정상 응답 확인
+        #     xml_data = response.text
+        #     root = ET.fromstring(xml_data)  # XML 파싱
+        #     print("root : ",root)
+        #     for status in root.findall('status'):
+        #         value = status.find('ercode').text
+        #         print("value",value)
+        #     # 이제 XML 요소에 접근하여 필요한 작업 수행 가능
+        #     # 예를 들어, 특정 요소의 값을 가져오는 방법은 아래와 같습니다:
+        #     #value = root.find('sawon_cd').text
+        #     #print(value)
+        # else:
+        #     print("Error:", response.status_code)
+    # conn.close() 
+    output, error = run_git_command_deploy(f"git pull origin main")
     if output:
         print(output.decode("utf-8"))
     if error:
