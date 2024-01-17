@@ -5,6 +5,7 @@ import os
 import schedule
 import time
 import datetime
+import requests
 
 def current_time(msg):
     current_time = datetime.datetime.now()
@@ -22,15 +23,15 @@ def run_git_command_test(command):
     # except Exception as e:
     #     return None, str(e) 
 current_time("GIT저장소와 DATABASE연동처리 시작 : ")
-cx_Oracle.init_oracle_client(lib_dir=r"D:\instantclient_21_9")
+# cx_Oracle.init_oracle_client(lib_dir=r"D:\instantclient_21_9")
 
-#host = '16.16.16.120'
-host = '10.20.20.201'
-port = 1521
-#sid = 'OLB19DB'
-sid = 'PDB_ONE.INCAR.CO.KR'
-user_name = ''
-passwd = ''
+# #host = '16.16.16.120'
+# host = '10.20.20.201'
+# port = 1521
+# #sid = 'OLB19DB'
+# sid = 'PDB_ONE.INCAR.CO.KR'
+# user_name = ''
+# passwd = ''
 
 get_commit_hash = ""
 get_commit_msg = ""
@@ -55,6 +56,7 @@ if output3:
 if error3:
     print(error3)
 #git pull 하고나서 get_commit_hash 이후로 발생한 커밋들의 해시값과 커밋메시지 획득
+#get_commit_hash = "54e6d4c"
 insert_commit_msg =""
 insert_commit_hash =""
 insert_commit_hash_msg = ""
@@ -68,42 +70,59 @@ if error4:
 #해쉬값은 여러개가 나올 수 있으니까 반복문
 if insert_commit_hash_msg!="":
     lines = insert_commit_hash_msg.split("\n")
-    conn = cx_Oracle.connect(f'{user_name}/{passwd}@{host}:{port}/{sid}')
+    #conn = cx_Oracle.connect(f'{user_name}/{passwd}@{host}:{port}/{sid}')
     #i=0
     print("len_lines::", len(lines))
     for line in lines:
         #i= i+1
         #print("i::",i)
         insert_data = line.split(",")
+        print(insert_data)
         if len(insert_data) >= 2:
             print(insert_data[0])
+            print(insert_data[1])
+            print(insert_data[2])
             insert_commit_hash = insert_data[1]
             insert_commit_msg = insert_data[2]
-            qry = f"""
-                        select pk from info_request where jubsu_no ={insert_commit_msg}
-                    """
-            bind_arr={"jubsu_no":insert_commit_msg}
-            print(qry)
-            cursor = conn.cursor()
-            cursor.execute(qry)
-            info_request_pk = ""
-            results = cursor.fetchall()
-            for row in results:
-                column1_value = row[0]
-                info_request_pk = column1_value
-            qry = f"""
-                        insert into git_inforequest_link 
-                        (info_request_pk, hash_code, gubun, create_date, upmu_gubun)
-                        values
-                        (:info_request_pk, :hash_code, '1', sysdate,'1')
-                    """
-            bind_arr={"info_request_pk":info_request_pk, "hash_code":insert_commit_hash}
-            print(qry)
-            print(bind_arr)
-            cursor = conn.cursor()
-            cursor.execute(qry, bind_arr)
-            conn.commit()
+            # qry = f"""
+            #             select pk from info_request where jubsu_no ={insert_commit_msg}
+            #         """
+            # bind_arr={"jubsu_no":insert_commit_msg}
+            # print(qry)
+            # cursor = conn.cursor()
+            # cursor.execute(qry)
+            # info_request_pk = ""
+            # results = cursor.fetchall()
+            # for row in results:
+            #     column1_value = row[0]
+            #     info_request_pk = column1_value
+                
+            # qry = f"""
+            #             insert into git_inforequest_link 
+            #             (info_request_pk, hash_code, gubun, create_date, upmu_gubun)
+            #             values
+            #             (:info_request_pk, :hash_code, '1', sysdate,'1')
+            #         """
+            # bind_arr={"info_request_pk":info_request_pk, "hash_code":insert_commit_hash}
+            # print(qry)
+            # print(bind_arr)
+            # cursor = conn.cursor()
+            # cursor.execute(qry, bind_arr)
+            # conn.commit()
+            api_url = "http://10.16.16.160/api/giteaApi/link"
 
-    conn.close()      
+            # IrItem 클래스에 해당하는 데이터
+            data = {
+                "jubsu_no": insert_commit_msg,
+                "hash_code": insert_commit_hash,
+                "gubun": "1",
+                "upmu_gubun": "1"
+            }
+
+            # POST 요청 보내기
+            response = requests.post(api_url, json=data)
+            print(response.status_code)
+            print(response.text)
+            #conn.close()      
 
 current_time("GIT저장소와 DATABASE연동처리 종료 : ")    
